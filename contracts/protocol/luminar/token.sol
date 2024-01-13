@@ -5,6 +5,11 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Pausable.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
+
+// wad = ammount
+// guy = address from
+// usr = address to
 
 contract Token is ERC20, ERC20Burnable, ERC20Pausable, AccessControl, ReentrancyGuard {
     bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
@@ -49,12 +54,32 @@ contract Token is ERC20, ERC20Burnable, ERC20Pausable, AccessControl, Reentrancy
         _mint(to, amount);
     }
 
-    function _beforeTokenTransfer(address from, address to, uint256 ammount) internal whenNotPaused nonReentrant override {
+    function burn(uint256 amount) public virtual {
+        emit Burn(msg.sender, amount);
+        _burn(msg.sender, amount);
+    }
+
+    function _beforeTokenTransfer(address from, address to, uint256 ammount) internal whenNotPaused nonReentrant override { // before each transaction
+        require(to != address(0) || totalSupply() <= maxSupply , "ERC20: transfer to the zero address");
+        emit Transfer(from, to, ammount);
         super._beforeTokenTransfer(from, to, ammount);
     }
 
-    // The following functions are overrides required by Solidity.
+    // --- Alias ---
+    function push(address to, uint ammount) external { // push = transfer tokens to user
+        transferFrom(msg.sender, to, ammount);
+    }
 
+    function pull(address from, uint ammount) external { // pull = obtain tokens from user
+        transferFrom(from, msg.sender, ammount);
+    }
+
+    function move(address from, address to, uint ammount) external { // move = transfer tokens from one user to another
+        transferFrom(from, to, ammount);
+    }   
+
+
+    // The following functions are overrides required by Solidity.
     function _update(address from, address to, uint256 value)
         internal
         override(ERC20, ERC20Pausable)
